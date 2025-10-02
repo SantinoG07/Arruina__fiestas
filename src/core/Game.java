@@ -1,12 +1,13 @@
 package core;
 import java.awt.Panel;
+import java.io.IOException;
 
 import javax.swing.JFrame;
 
 import input.Inputhandler;
 
 public class Game {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
 
 
         // Crear ventana principal
