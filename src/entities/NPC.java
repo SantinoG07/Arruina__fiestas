@@ -3,6 +3,10 @@ package entities;
 import java.awt.Color;
 
 import java.awt.Graphics;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 public class NPC {
@@ -35,6 +39,11 @@ public class NPC {
 	public int getid() {
 		return id;
 	}
-	
+	public double getPosX() {
+		return posX;
+	}
+	public double getPosY() {
+		return posY;
+	}
 
 }

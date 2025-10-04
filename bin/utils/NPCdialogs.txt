@@ -1,8 +1,4 @@
 #1
 Hola viajero.
 Bienvenido a mi casa.
-Pulsa E para continuar.
 
-#2
-Soy el guardia de la puerta.
-No puedes pasar aún.
