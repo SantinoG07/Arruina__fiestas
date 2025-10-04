@@ -2,6 +2,7 @@ package core;
 
 import javax.swing.JPanel;
 
+import core.Gamestate;
 import entities.NPC;
 import entities.Player;
 import input.Inputhandler;
@@ -20,10 +21,15 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.Rectangle;
 
 public class Gamepanel extends JPanel {
 
 	private Dialoguemanager npc1Dialogues;
+	public Gamestate gameState = Gamestate.MENU;
+
 	
 	private final int Virtualwidth = 800;
 	private final int Virtualheight = 600;
@@ -36,6 +42,10 @@ public class Gamepanel extends JPanel {
 	private NPC npcDialogando = null;
 	private int lineaDialogo = 0;
 	private List<List<String>> npcDialogos;
+	private Rectangle btnJugar, btnSalir;
+	private boolean hoverJugar = false, hoverSalir = false;
+	private Rectangle btnContinuar, btnSalirMenu;
+	private boolean hoverContinuar = false, hoverSalirMenu = false;
 
 	public Gamepanel() throws IOException {
 		input = new Inputhandler();
@@ -51,55 +61,133 @@ public class Gamepanel extends JPanel {
 		// Crear un NPC de ejemplo con diálogos
 		npcs.add(new NPC(200, 200, 1, npcDialogos.get(0)));
 		
-		// Key listener para interacción con E
-		this.addKeyListener(new KeyAdapter() {
-			@Override
-			public void keyPressed(KeyEvent e) {
-				//Si el jugador presiona E
-				if (e.getKeyCode() == KeyEvent.VK_E) {
-					//Y el dialogo esta activo
-					if (dialogoActivo) {
-						//Se carga la siguiente linea de dialogo
-						if (npcDialogando != null && lineaDialogo < npcDialogando.getdialogos().size() - 1) {
-							lineaDialogo++;
-						} 
-						//Se desactiva el dialogo
-						else {
-							dialogoActivo = false;
-							npcDialogando = null;
-							lineaDialogo = 0;
-						}
-						repaint();
-					} 
-					//Si el jugador no presiona la E
-					else {
-						for (NPC npc : npcs) {
-							//Se revisa si esta cerca
-							if (npc.Estacerca(player.posX, player.posY)) {
-								dialogoActivo = true;
-								npcDialogando = npc;
-								lineaDialogo = 0;
-								repaint();
-								break;
-							}
-						}
-					}
-				}
-			}
-		});
+		int btnWidth = 200, btnHeight = 60;
+        btnJugar = new Rectangle((Virtualwidth - btnWidth) / 2, Virtualheight / 2 - 40, btnWidth, btnHeight);
+        btnSalir = new Rectangle((Virtualwidth - btnWidth) / 2, Virtualheight / 2 + 40, btnWidth, btnHeight);
+        btnContinuar = new Rectangle((Virtualwidth - btnWidth) / 2, Virtualheight / 2 - 40, btnWidth, btnHeight);
+        btnSalirMenu = new Rectangle((Virtualwidth - btnWidth) / 2, Virtualheight / 2 + 40, btnWidth, btnHeight);
+        addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (gameState == Gamestate.MENU) {
+                    if (btnJugar.contains(e.getPoint())) {
+                        gameState = Gamestate.PLAYING;
+                        repaint();
+                    } else if (btnSalir.contains(e.getPoint())) {
+                        System.exit(0);
+                    }
+                } else if (gameState == Gamestate.PAUSE) {
+                    if (btnContinuar.contains(e.getPoint())) {
+                        gameState = Gamestate.PLAYING;
+                        repaint();
+                    } else if (btnSalirMenu.contains(e.getPoint())) {
+                        gameState = Gamestate.MENU;
+                        repaint();
+                    }
+                }
+            }
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                if (gameState == Gamestate.MENU) {
+                    hoverJugar = btnJugar.contains(e.getPoint());
+                    hoverSalir = btnSalir.contains(e.getPoint());
+                    repaint();
+                } else if (gameState == Gamestate.PAUSE) {
+                    hoverContinuar = btnContinuar.contains(e.getPoint());
+                    hoverSalirMenu = btnSalirMenu.contains(e.getPoint());
+                    repaint();
+                }
+            }
+        });
+        addMouseMotionListener(new MouseAdapter() {
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                if (gameState == Gamestate.MENU) {
+                    hoverJugar = btnJugar.contains(e.getPoint());
+                    hoverSalir = btnSalir.contains(e.getPoint());
+                    repaint();
+                } else if (gameState == Gamestate.PAUSE) {
+                    hoverContinuar = btnContinuar.contains(e.getPoint());
+                    hoverSalirMenu = btnSalirMenu.contains(e.getPoint());
+                    repaint();
+                }
+            }
+        });
+        // Key listener for ESC to pause/resume
+        this.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (gameState == Gamestate.PLAYING && e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+                    gameState = Gamestate.PAUSE;
+                    repaint();
+                } else if (gameState == Gamestate.PAUSE && e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+                    gameState = Gamestate.PLAYING;
+                    repaint();
+                }
+            }
+        });
 	}
 
 
     public void update() {
-        if (!dialogoActivo) {
-            player.actualizar();
+    	switch (gameState){
+    	case MENU:{
+    		if(input.enter) {
+    			gameState = gameState.PLAYING;
+    			input.enter = false;
+    		}
+    	}
+    	case PLAYING:{
+    		if(!dialogoActivo) player.actualizar();
+    	}
+    	case PAUSE:{
+            if (!dialogoActivo) player.actualizar();
+            if (input.e) {
+                manejarDialogo();
+                input.e = false; // evita repetir
+            }
+            break;
+    	}
+    		
+    	}
+    }
+    
+    private void manejarDialogo() {
+        if (dialogoActivo) {
+            if (npcDialogando != null && lineaDialogo < npcDialogando.getdialogos().size() - 1) {
+                lineaDialogo++;
+            } else {
+                dialogoActivo = false;
+                npcDialogando = null;
+                lineaDialogo = 0;
+            }
+        } else {
+            for (NPC npc : npcs) {
+                if (npc.Estacerca(player.posX, player.posY)) {
+                    dialogoActivo = true;
+                    npcDialogando = npc;
+                    lineaDialogo = 0;
+                    break;
+                }
+            }
         }
     }
+
     
     @Override	//Indica que esta sobreescribiendo un metodo de la libreria
     protected void paintComponent(Graphics g) { //El protected indica que solo se puede usar en clases del mismo paquete
         super.paintComponent(g); //PREGUNTAR
         Graphics2D g2d = escalado(g);
+        if (gameState == Gamestate.MENU) {
+            dibujarMenuInicio(g2d);
+            g2d.dispose();
+            return;
+        }
+        if (gameState == Gamestate.PAUSE) {
+            dibujarPauseMenu(g2d);
+            g2d.dispose();
+            return;
+        }
         player.dibujarJ(g2d);
         
         //Recorremos todos los npcs
@@ -137,6 +225,60 @@ public class Gamepanel extends JPanel {
     	
     }
 
+    private void dibujarMenu(Graphics2D g2d) {
+        g2d.setColor(Color.BLACK);
+        g2d.fillRect(0, 0, Virtualwidth, Virtualheight);
+
+        g2d.setColor(Color.WHITE);
+        g2d.setFont(g2d.getFont().deriveFont(36f));
+        g2d.drawString("TUKITUX", Virtualwidth / 2 - 100, Virtualheight / 3);
+
+        g2d.setFont(g2d.getFont().deriveFont(24f));
+        g2d.drawString("Presiona ENTER para jugar", Virtualwidth / 2 - 150, Virtualheight / 2);
+        g2d.drawString("Presiona ESC para salir", Virtualwidth / 2 - 140, Virtualheight / 2 + 50);
+    }
+
+    private void dibujarMenuInicio(Graphics2D g2d) {
+        g2d.setColor(Color.BLACK);
+        g2d.fillRect(0, 0, Virtualwidth, Virtualheight);
+        g2d.setColor(Color.WHITE);
+        g2d.setFont(g2d.getFont().deriveFont(36f));
+        g2d.drawString("TUKITUX", Virtualwidth / 2 - 100, Virtualheight / 3);
+        g2d.setFont(g2d.getFont().deriveFont(24f));
+        // Botón Jugar
+        g2d.setColor(hoverJugar ? Color.GREEN : Color.DARK_GRAY);
+        g2d.fillRoundRect(btnJugar.x, btnJugar.y, btnJugar.width, btnJugar.height, 20, 20);
+        g2d.setColor(Color.WHITE);
+        g2d.drawRoundRect(btnJugar.x, btnJugar.y, btnJugar.width, btnJugar.height, 20, 20);
+        g2d.drawString("Jugar", btnJugar.x + 60, btnJugar.y + 38);
+        // Botón Salir
+        g2d.setColor(hoverSalir ? Color.RED : Color.DARK_GRAY);
+        g2d.fillRoundRect(btnSalir.x, btnSalir.y, btnSalir.width, btnSalir.height, 20, 20);
+        g2d.setColor(Color.WHITE);
+        g2d.drawRoundRect(btnSalir.x, btnSalir.y, btnSalir.width, btnSalir.height, 20, 20);
+        g2d.drawString("Salir", btnSalir.x + 65, btnSalir.y + 38);
+    }
+
+    private void dibujarPauseMenu(Graphics2D g2d) {
+        g2d.setColor(new Color(0,0,0,180));
+        g2d.fillRect(0, 0, Virtualwidth, Virtualheight);
+        g2d.setColor(Color.WHITE);
+        g2d.setFont(g2d.getFont().deriveFont(36f));
+        g2d.drawString("PAUSA", Virtualwidth / 2 - 70, Virtualheight / 3);
+        g2d.setFont(g2d.getFont().deriveFont(24f));
+        // Botón Continuar
+        g2d.setColor(hoverContinuar ? Color.GREEN : Color.DARK_GRAY);
+        g2d.fillRoundRect(btnContinuar.x, btnContinuar.y, btnContinuar.width, btnContinuar.height, 20, 20);
+        g2d.setColor(Color.WHITE);
+        g2d.drawRoundRect(btnContinuar.x, btnContinuar.y, btnContinuar.width, btnContinuar.height, 20, 20);
+        g2d.drawString("Continuar", btnContinuar.x + 40, btnContinuar.y + 38);
+        // Botón Salir al menú
+        g2d.setColor(hoverSalirMenu ? Color.RED : Color.DARK_GRAY);
+        g2d.fillRoundRect(btnSalirMenu.x, btnSalirMenu.y, btnSalirMenu.width, btnSalirMenu.height, 20, 20);
+        g2d.setColor(Color.WHITE);
+        g2d.drawRoundRect(btnSalirMenu.x, btnSalirMenu.y, btnSalirMenu.width, btnSalirMenu.height, 20, 20);
+        g2d.drawString("Salir al menú", btnSalirMenu.x + 25, btnSalirMenu.y + 38);
+    }
 
     private void dibujarE(Graphics2D g2d, NPC npc) {
         g2d.setColor(Color.YELLOW);

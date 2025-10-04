@@ -1,5 +1,8 @@
 package core;
 
-public class Gamestate {
-
+public enum Gamestate {
+	MENU,
+	PLAYING,
+	PAUSE,
+	GAME_OVER
 }
