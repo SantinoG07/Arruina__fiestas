@@ -63,25 +63,10 @@ public class Gamepanel extends JPanel {
 
 
 
-	@Override
+    @Override
 public void setBounds(int x, int y, int width, int height) {
     super.setBounds(x, y, width, height);
-    // Mantener la relación de aspecto
-    double targetRatio = (double)VIRTUAL_WIDTH / VIRTUAL_HEIGHT;
-    double currentRatio = (double)width / height;
-    
-    if (currentRatio > targetRatio) {
-        // La ventana es demasiado ancha, ajustar el ancho
-        int newWidth = (int)(height * targetRatio);
-        super.setBounds(x + (width - newWidth)/2, y, newWidth, height);
-    } else if (currentRatio < targetRatio) {
-        // La ventana es demasiado alta, ajustar el alto
-        int newHeight = (int)(width / targetRatio);
-        super.setBounds(x, y + (height - newHeight)/2, width, newHeight);
-    }
-}
-
-public void update() {
+}public void update() {
 
 	    if (input.esc) {
 	        if (gameState == Gamestate.PLAYING) {
