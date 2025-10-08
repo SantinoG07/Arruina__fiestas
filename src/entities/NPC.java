@@ -17,6 +17,7 @@ public class NPC {
 	public NPC(double posX, double posY, int id, List<String> dialogo){
 		this.posX = posX;
 		this.posY = posY;
+		this.id = id;
 		this.dialogo = dialogo;
 	}
 	

@@ -9,6 +9,7 @@ import levels.Mission;
 import levels.Mission1;
 import ui.Dialoguemanager;
 import ui.Drawmenu;
+import ui.TimerBar;
 
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -23,10 +24,11 @@ public class Gamepanel extends JPanel {
 	public Gamestate gameState = Gamestate.MENU;
 
 	
-	public final static int Virtualwidth = 800;
-	public final static int Virtualheight = 600;
+	public static final int VIRTUAL_WIDTH = 800;
+	public static final int VIRTUAL_HEIGHT = 600;
 	private Mission activeMission = null;
 	private List<NPC> npcs;
+	private Camera camera;
 	
 	private Player player;
 	private Inputhandler input;
@@ -35,27 +37,51 @@ public class Gamepanel extends JPanel {
 	private NPC npcDialogando = null;
 	private int lineaDialogo = 0;
 	private List<List<String>> npcDialogos;
+	private TimerBar timerBar;
+	private boolean needsReset = false;
 
 	Drawmenu menu = new Drawmenu();
 
 	public Gamepanel() throws IOException {
+		// Posicionamos la barra en el centro superior de la pantalla virtual
+		timerBar = new TimerBar(VIRTUAL_WIDTH / 2 - 100, 20, 200, 30, 5); // 5 segundos de duración
 	    input = new Inputhandler(this);
 	    this.addKeyListener(input);
 	    this.addMouseListener(input);
 	    this.addMouseMotionListener(input);
 	    this.setFocusable(true);
 	    this.requestFocusInWindow();
-	    setPreferredSize(new Dimension(Virtualwidth, Virtualheight));
+	    setPreferredSize(new Dimension(VIRTUAL_WIDTH, VIRTUAL_HEIGHT));
 
+	    camera = new Camera(VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
 	    player = new Player(400, 300, input);
 	    npcs = new ArrayList<>();
 	    npcDialogos = Dialoguemanager.cargarDialogos();
 	    npcs.add(new NPC(200, 200, 1, npcDialogos.get(0)));
+	    System.out.println("NPC creado con ID: " + npcs.get(0).getid());
 	}
 
 
 
-	public void update() {
+	@Override
+public void setBounds(int x, int y, int width, int height) {
+    super.setBounds(x, y, width, height);
+    // Mantener la relación de aspecto
+    double targetRatio = (double)VIRTUAL_WIDTH / VIRTUAL_HEIGHT;
+    double currentRatio = (double)width / height;
+    
+    if (currentRatio > targetRatio) {
+        // La ventana es demasiado ancha, ajustar el ancho
+        int newWidth = (int)(height * targetRatio);
+        super.setBounds(x + (width - newWidth)/2, y, newWidth, height);
+    } else if (currentRatio < targetRatio) {
+        // La ventana es demasiado alta, ajustar el alto
+        int newHeight = (int)(width / targetRatio);
+        super.setBounds(x, y + (height - newHeight)/2, width, newHeight);
+    }
+}
+
+public void update() {
 
 	    if (input.esc) {
 	        if (gameState == Gamestate.PLAYING) {
@@ -75,11 +101,26 @@ public class Gamepanel extends JPanel {
 	        break;
 	    }
 	    case PLAYING: {
-	        if (!dialogoActivo) player.actualizar();
+	        if (!dialogoActivo) {
+	            player.actualizar();
+	            camera.centerOnPlayer(player);
+	        }
 	        
 	        if (input.e) {
 	            manejarDialogo();
 	            input.e = false;
+	        }
+
+	        // Actualizar la barra de tiempo
+	        if (timerBar.isActive()) {
+	            timerBar.update();
+	            if (timerBar.isFinished() && !needsReset) {
+	                player.resetPosition();
+	                needsReset = true;  // Evita múltiples resets
+	            }
+	            repaint(); // Forzar el redibujado cuando la barra está activa
+	        } else {
+	            needsReset = false;  // Resetea el flag cuando el timer no está activo
 	        }
 	        break;
 	    }
@@ -115,15 +156,19 @@ public class Gamepanel extends JPanel {
 	                dialogoActivo = false;
 	                System.out.println("Diálogo terminado con NPC " + npcDialogando.getid());
 
-	                if (player != null) {
-	                    player.resetPosition();
-	                    System.out.println("Jugador reiniciado a posición inicial: (" 
-	                        + player.posX + ", " + player.posY + ")");
+	                // Si es el NPC 1, iniciamos el temporizador
+	                if (npcDialogando.getid() == 1) {
+	                    timerBar.start();
+	                } else {
+	                    // Para otros NPCs, resetear posición inmediatamente
+	                    if (player != null) {
+	                        player.resetPosition();
+	                    }
 	                }
 
 	                npcDialogando = null;
 	                lineaDialogo = 0;
-	                repaint(); 
+	                repaint();
 	            }
 	        }
 	    }
@@ -132,32 +177,70 @@ public class Gamepanel extends JPanel {
 
 
     
-    @Override	//Indica que esta sobreescribiendo un metodo de la libreria
-    protected void paintComponent(Graphics g) { //El protected indica que solo se puede usar en clases del mismo paquete
-        super.paintComponent(g); //PREGUNTAR
-        Graphics2D g2d = Scalation.escalado(g, this, Virtualwidth, Virtualheight);
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        Graphics2D g2d = (Graphics2D) g;
+
+        // Aplicar el escalado basado en el tamaño de la ventana
+        double scaleX = getWidth() / (double) VIRTUAL_WIDTH;
+        double scaleY = getHeight() / (double) VIRTUAL_HEIGHT;
+        g2d.scale(scaleX, scaleY);
+
         if (gameState == Gamestate.MENU) {
-            menu.dibujarMenuInicio(g2d, Virtualwidth, Virtualheight);
+            menu.dibujarMenuInicio(g2d, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
             g2d.dispose();
             return;
         }
         if (gameState == Gamestate.PAUSE) {
-			menu.dibujarPauseMenu(g2d, Virtualwidth, Virtualheight);
+                        menu.dibujarPauseMenu(g2d, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
             g2d.dispose();
             return;
         }
-        player.dibujarJ(g2d);
+
+        // Actualizar la posición de la cámara
+        camera.centerOnPlayer(player);
+
+        // Guardar la transformación actual para la UI
+        java.awt.geom.AffineTransform originalTransform = g2d.getTransform();
         
-        //Recorremos todos los npcs
+        // Aplicar la transformación de la cámara
+        g2d.translate(-camera.getXOffset(), -camera.getYOffset());
+        
+        // Dibujar el mundo (aquí deberías dibujar el fondo primero si lo tienes)
+        
+        // Dibujar NPCs solo si están en el viewport de la cámara
         for(NPC npc: npcs) {
-            npc.dibujarNPC(g2d);
-            if(npc.Estacerca(player.posX, player.posY) && !dialogoActivo) {
-                Dialoguemanager.dibujarE(g2d, npc);
+            if(camera.isVisible((float)npc.getPosX(), (float)npc.getPosY(), 32, 32)) { // Usando tamaño fijo para NPC
+                npc.dibujarNPC(g2d);
+                if(npc.Estacerca(player.posX, player.posY) && !dialogoActivo) {
+                    Dialoguemanager.dibujarE(g2d, npc);
+                }
             }
         }
+
+        // Dibujar jugador (siempre visible ya que la cámara lo sigue)
+        player.dibujarJ(g2d);
+
+        // Restaurar transformación original para UI
+        g2d.setTransform(originalTransform);
+        
+        // Dibujar elementos de UI
         if (dialogoActivo && npcDialogando != null) {
-        	Dialoguemanager.dibujarCartel(g2d, npcDialogando.getdialogos().get(lineaDialogo), Virtualwidth, Virtualheight);
+            Dialoguemanager.dibujarCartel(g2d, npcDialogando.getdialogos().get(lineaDialogo), VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
         }
+
+        // Dibujar timer si está activo
+        if (timerBar != null && timerBar.isActive()) {
+            timerBar.draw(g2d);
+        }
+
+        // Dibujar la barra de tiempo si está activa
+        if (timerBar != null && timerBar.isActive()) {
+            timerBar.draw(g2d);
+            System.out.println("Dibujando barra de tiempo - Progreso: " + timerBar.getProgress());
+        }
+        
         g2d.dispose();
     }
     
@@ -167,9 +250,8 @@ public class Gamepanel extends JPanel {
     
     public int obtancho() {
     	return getWidth();
-    	
     }
-
+    
 
 
     public void cambiarhab(String string) {

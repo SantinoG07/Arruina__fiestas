@@ -23,7 +23,7 @@ public class Dialoguemanager {
 
     public static List<List<String>> cargarDialogos() throws IOException {
         List<List<String>> dialogos = new ArrayList<>();
-        BufferedReader br = new BufferedReader(new FileReader("src/utils/NPCdialogs.txt"));
+        BufferedReader br = new BufferedReader(new FileReader("utils/NPCdialogs.txt"));
         String linea;
         List<String> actual = null;
 

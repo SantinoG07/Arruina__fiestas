@@ -18,10 +18,10 @@ public class Drawmenu {
 	public Drawmenu() {
 
 		int btnWidth = 200, btnHeight = 60;
-        btnJugar = new Rectangle((Gamepanel.Virtualwidth - btnWidth) / 2, Gamepanel.Virtualheight / 2 - 40, btnWidth, btnHeight);
-        btnSalir = new Rectangle((Gamepanel.Virtualwidth - btnWidth) / 2, Gamepanel.Virtualheight / 2 + 40, btnWidth, btnHeight);
-        btnContinuar = new Rectangle((Gamepanel.Virtualwidth - btnWidth) / 2, Gamepanel.Virtualheight / 2 - 40, btnWidth, btnHeight);
-        btnSalirMenu = new Rectangle((Gamepanel.Virtualwidth - btnWidth) / 2, Gamepanel.Virtualheight / 2 + 40, btnWidth, btnHeight);
+        btnJugar = new Rectangle((Gamepanel.VIRTUAL_WIDTH - btnWidth) / 2, Gamepanel.VIRTUAL_HEIGHT / 2 - 40, btnWidth, btnHeight);
+        btnSalir = new Rectangle((Gamepanel.VIRTUAL_WIDTH - btnWidth) / 2, Gamepanel.VIRTUAL_HEIGHT / 2 + 40, btnWidth, btnHeight);
+        btnContinuar = new Rectangle((Gamepanel.VIRTUAL_WIDTH - btnWidth) / 2, Gamepanel.VIRTUAL_HEIGHT / 2 - 40, btnWidth, btnHeight);
+        btnSalirMenu = new Rectangle((Gamepanel.VIRTUAL_WIDTH - btnWidth) / 2, Gamepanel.VIRTUAL_HEIGHT / 2 + 40, btnWidth, btnHeight);
 	}
 
 	
